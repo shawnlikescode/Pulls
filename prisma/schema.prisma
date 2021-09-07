@@ -1,18 +1,19 @@
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["referentialActions"]
-}
-
 datasource db {
   provider = "postgres"
   url      = "postgresql://shawn:@localhost:5432/appdb"
 }
 
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["referentialActions"]
+}
+
 model User {
-  id            Int       @id @default(autoincrement())
-  firstName     String?
-  lastName      String?
+  id            String    @id @default(cuid())
+  givenName     String?
+  familyName    String?
   name          String?
+  username      String?   @unique
   email         String?   @unique
   emailVerified DateTime? @map(name: "email_verified")
   image         String?
@@ -23,7 +24,46 @@ model User {
   address       Address?  @relation(fields: [addressId], references: [id])
   profile       Profile?
 
+  Account Account[]
+  Session Session[]
   @@map(name: "users")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Address {
@@ -37,10 +77,10 @@ model Address {
   countryId Int
   regionId  Int
   user      User[]
-  country   Country  @relation(fields: [countryId], references: [id])
   region    Region   @relation(fields: [regionId], references: [id])
+  country   Country  @relation(fields: [countryId], references: [id])
   createdAt DateTime @default(now()) @map(name: "created_at")
-  updatedAt DateTime @default(now()) @map(name: "updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
 }
 
 model Country {
@@ -63,51 +103,8 @@ model Region {
 model Profile {
   id     Int     @id @default(autoincrement())
   bio    String?
-  userId Int     @unique
-  user   User    @relation(fields: [userId], references: [id])
-}
-
-model Account {
-  id                 Int       @id @default(autoincrement())
-  compoundId         String    @unique @map(name: "compound_id")
-  userId             Int       @map(name: "user_id")
-  providerType       String    @map(name: "provider_type")
-  providerId         String    @map(name: "provider_id")
-  providerAccountId  String    @map(name: "provider_account_id")
-  refreshToken       String?   @map(name: "refresh_token")
-  accessToken        String?   @map(name: "access_token")
-  accessTokenExpires DateTime? @map(name: "access_token_expires")
-  createdAt          DateTime  @default(now()) @map(name: "created_at")
-  updatedAt          DateTime  @default(now()) @map(name: "updated_at")
-
-
-  @@index([providerAccountId], name: "providerAccountId")
-  @@index([providerId], name: "providerId")
-  @@index([userId], name: "userId")
-  @@map(name: "accounts")
-}
-
-model Session {
-  id           Int      @id @default(autoincrement())
-  userId       Int      @map(name: "user_id")
-  expires      DateTime
-  sessionToken String   @unique @map(name: "session_token")
-  accessToken  String   @unique @map(name: "access_token")
-  createdAt    DateTime @default(now()) @map(name: "created_at")
-  updatedAt    DateTime @default(now()) @map(name: "updated_at")
-
-  @@map(name: "sessions")
-}
-
-model VerificationRequest {
-  id         Int      @id @default(autoincrement())
-  identifier String
-  token      String   @unique
-  expires    DateTime
-  createdAt  DateTime @default(now()) @map(name: "created_at")
-  updatedAt  DateTime @default(now()) @map(name: "updated_at")
-
-  @@map(name: "verification_requests")
+  userId String  @unique
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Listing {
@@ -115,7 +112,7 @@ model Listing {
   title             String
   image             String[]
   published         Boolean              @default(false)
-  userId            Int
+  userId            String
   listingId         Int
   createdAt         DateTime             @default(now()) @map(name: "created_at")
   updatedAt         DateTime             @default(now()) @map(name: "updated_at")

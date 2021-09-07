@@ -1,20 +1,32 @@
-import { NextApiHandler } from "next";
-import NextAuth from "next-auth";
-import Providers from "next-auth/providers";
-import Adapters from "next-auth/adapters";
-import prisma from "../../../lib/prisma";
+import { NextApiHandler } from 'next';
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import EmailProvider from 'next-auth/providers/email';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import { PrismaClient } from '@prisma/client';
+import * as log from 'loglevel';
 
-const authHandler: NextApiHandler = (req, res) => NextAuth(req, res, options);
-export default authHandler;
+const prisma = new PrismaClient();
 
-const options = {
+export default NextAuth({
+    adapter: PrismaAdapter(prisma),
+    logger: {
+        error(code, metadata) {
+            log.error(code, metadata);
+        },
+        warn(code) {
+            log.warn(code);
+        },
+        debug(code, metadata) {
+            log.debug(code, metadata);
+        },
+    },
     providers: [
-        Providers.Auth0({
-            clientId: process.env.AUTH0_CLIENT_ID,
-            clientSecret: process.env.AUTH0_CLIENT_SECRET,
-            domain: process.env.AUTH0_DOMAIN,
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         }),
-        Providers.Email({
+        EmailProvider({
             server: {
                 host: process.env.SMTP_HOST,
                 port: Number(process.env.SMTP_PORT),
@@ -26,6 +38,5 @@ const options = {
             from: process.env.SMTP_FROM,
         }),
     ],
-    adapter: Adapters.Prisma.Adapter({ prisma }),
-    secret: process.env.SECRET,
-};
+    debug: true,
+});
