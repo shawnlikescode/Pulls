@@ -17,11 +17,11 @@ model User {
   email         String?   @unique
   emailVerified DateTime? @map(name: "email_verified")
   image         String?
-  addressId     Int?
   createdAt     DateTime  @default(now()) @map(name: "created_at")
   updatedAt     DateTime  @updatedAt @map(name: "updated_at")
   listings      Listing[]
   address       Address?  @relation(fields: [addressId], references: [id])
+  addressId     Int?
   profile       Profile?
 
   Account Account[]
@@ -113,27 +113,38 @@ model Listing {
   image             String[]
   published         Boolean              @default(false)
   userId            String
-  listingId         Int
+  categoryId        Int
   createdAt         DateTime             @default(now()) @map(name: "created_at")
   updatedAt         DateTime             @default(now()) @map(name: "updated_at")
-  categoryId        Int
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listingInfomation ListingInformation[]
   Category          Category[]
+  listingInfomation ListingInformation[]
+  ListingsRelatedTo RelatedListing[]     @relation("Listing")
+  RelatedListings   RelatedListing[]     @relation("RelatedListing")
 }
 
 model ListingInformation {
   id             Int          @id @default(autoincrement())
   price          Decimal      @db.Money
   description    String
-  listingId      Int
-  manufacturerId Int
-  mediumId       Int
   createdAt      DateTime     @default(now()) @map(name: "created_at")
   updatedAt      DateTime     @default(now()) @map(name: "updated")
   listing        Listing      @relation(fields: [listingId], references: [id])
+  listingId      Int
   manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id])
+  manufacturerId Int
   medium         Medium       @relation(fields: [mediumId], references: [id])
+  mediumId       Int
+}
+
+model RelatedListing {
+  relevance        Int
+  listing          Listing @relation("Listing", fields: [listingId], references: [id])
+  listingId        Int
+  RelatedListing   Listing @relation("RelatedListing", fields: [relatedListingId], references: [id])
+  relatedListingId Int
+
+  @@id([listingId, relatedListingId])
 }
 
 model Manufacturer {
